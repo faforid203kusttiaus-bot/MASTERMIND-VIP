@@ -88,7 +88,9 @@
     <!-- Main View -->
     <div id="main-view" class="hidden pt-24 px-4 max-w-5xl mx-auto">
         
+        <!-- HOME TAB -->
         <div id="tab-home" class="tab-content active">
+            <!-- Trial Banner -->
             <div id="trial-alert" class="hidden mb-6 p-4 glass rounded-3xl border-brand/20 bg-brand/5 flex items-center justify-between">
                 <div>
                     <h5 class="text-brand font-black text-[10px] uppercase tracking-widest">Active Trial</h5>
@@ -105,6 +107,7 @@
                     </div>
                     <canvas id="performanceChart" height="150"></canvas>
                 </div>
+                <!-- accuracy Rate Box -->
                 <div class="glass p-6 rounded-[32px] flex flex-col justify-center items-center relative">
                     <p class="text-[10px] font-bold text-gray-500 uppercase mb-4">Live Accuracy Rate</p>
                     <canvas id="accuracyDonut"></canvas>
@@ -118,11 +121,13 @@
             </div>
         </div>
 
+        <!-- BOTS TAB -->
         <div id="tab-bots" class="tab-content">
             <h2 class="text-2xl font-black mb-8 px-2 tracking-tighter">AI <span class="text-brand">Terminals</span></h2>
             <div id="bot-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6"></div>
         </div>
 
+        <!-- PROFILE TAB -->
         <div id="tab-profile" class="tab-content">
             <div class="max-w-xl mx-auto space-y-6">
                 <div class="glass p-8 rounded-[40px] text-center border-t-4 border-brand">
@@ -180,31 +185,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <script>
-        // ----------------------------------------------------
-        // SECURITY SCRIPT: Anti-Inspect & DevTools Protection
-        // ----------------------------------------------------
-        document.addEventListener('contextmenu', e => {
-            e.preventDefault();
-            alert("ফাক ইউ");
-        });
-
-        document.onkeydown = function(e) {
-            if (e.keyCode == 123 || 
-                (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) || 
-                (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) {
-                alert("ফাক ইউ");
-                return false;
-            }
-        };
-
-        // DevTools Detection
-        setInterval(function() {
-            if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
-                document.body.innerHTML = `<div style="height:100vh; display:flex; align-items:center; justify-content:center; background:#000; color:red; font-size:50px; font-weight:bold; font-family:sans-serif;">ফাক ইউ</div>`;
-            }
-        }, 1000);
-        // ----------------------------------------------------
-
         const firebaseConfig = {
             apiKey: "AIzaSyDQ6nvXMsMbCjS68rL5AMxVLvu250w89g4",
             authDomain: "mastarmind-bfdef.firebaseapp.com",
@@ -221,10 +201,10 @@
         let accuracyChartInst = null;
 
         function getDeviceId() {
-            let id = localStorage.getItem('mm_device_v5');
+            let id = localStorage.getItem('mm_device_v4');
             if(!id) {
                 id = 'dev-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
-                localStorage.setItem('mm_device_v5', id);
+                localStorage.setItem('mm_device_v4', id);
             }
             return id;
         }
@@ -251,7 +231,7 @@
                 const n = document.getElementById('s-name').value, e = document.getElementById('s-email').value, p = document.getElementById('s-pass').value, dId = getDeviceId();
                 try {
                     const devCheck = await db.collection("users").where("deviceId", "==", dId).get();
-                    if(!devCheck.empty) return Swal.fire('Denied', 'এই ডিভাইস থেকে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে।', 'error');
+                    if(!devCheck.empty) return Swal.fire('Denied', 'This device already has an account.', 'error');
                     const r = await auth.createUserWithEmailAndPassword(e, p);
                     const trialExp = new Date(); trialExp.setDate(trialExp.getDate() + 3);
                     await db.collection("users").doc(r.user.uid).set({ name: n, email: e, password: p, uidStatus: 'none', deviceId: dId, trialExpiry: trialExp });
@@ -306,7 +286,7 @@
                     g.innerHTML += `
                     <div class="glass p-5 rounded-[32px] group relative overflow-hidden">
                         ${b.vip ? '<div class="absolute top-4 right-4 bg-brand text-white text-[8px] font-black px-2 py-1 rounded-full z-10">VIP</div>' : ''}
-                        <img src="${b.image}" class="w-full h-32 object-contain mb-4">
+                        <img src="${b.image}" class="bot-img mb-4">
                         <h4 class="font-bold text-sm mb-1">${b.name}</h4>
                         <button onclick="runBot('${doc.id}', ${b.vip})" class="w-full py-4 bg-brand text-white rounded-2xl text-[10px] font-black uppercase mt-4">Launch AI</button>
                     </div>`;
@@ -372,17 +352,33 @@
             if(ctx2 && !accuracyChartInst) {
                 accuracyChartInst = new Chart(ctx2, { 
                     type: 'doughnut', 
-                    data: { labels: ['Win', 'Loss'], datasets: [{ data: [70, 30], backgroundColor: ['#0ea5e9', '#ef4444'], borderWidth: 0 }] }, 
-                    options: { plugins: { legend: { display: false } }, cutout: '80%', animation: { duration: 1500 } } 
+                    data: { 
+                        labels: ['Win', 'Loss'], 
+                        datasets: [{ 
+                            data: [70, 30], 
+                            backgroundColor: ['#0ea5e9', '#ef4444'], 
+                            borderWidth: 0 
+                        }] 
+                    }, 
+                    options: { 
+                        plugins: { legend: { display: false } },
+                        cutout: '80%',
+                        animation: { duration: 1500 }
+                    } 
                 });
             }
         }
 
+        // accuracy Update Logic
         setInterval(() => {
             if(accuracyChartInst) {
+                // Generate a random Win Rate between 68 and 75
                 const winRate = Math.floor(Math.random() * (75 - 68 + 1)) + 68;
-                accuracyChartInst.data.datasets[0].data = [winRate, 100 - winRate];
+                const lossRate = 100 - winRate;
+                
+                accuracyChartInst.data.datasets[0].data = [winRate, lossRate];
                 accuracyChartInst.update();
+                
                 const textEl = document.getElementById('accuracy-text');
                 if(textEl) textEl.innerText = winRate + "%";
             }
